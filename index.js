@@ -13,7 +13,7 @@ const TOKEN_PATH = 'token.json';
 fs.readFile('credentials.json', (err, content) => {
   if (err) return console.log('Error loading client secret file:', err);
   // Authorize a client with credentials, then call the Gmail API.
-  authorize(JSON.parse(content), listLabels);
+  authorize(JSON.parse(content), getAnId);
 });
 
 /**
@@ -71,6 +71,7 @@ function getNewToken(oAuth2Client, callback) {
  *
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
+/*
 function listLabels(auth) {
   const gmail = google.gmail({version: 'v1', auth});
   gmail.users.labels.list({
@@ -88,3 +89,48 @@ function listLabels(auth) {
     }
   });
 }
+
+*/
+function findMessages(auth) {
+    var gmail = google.gmail('v1');
+    gmail.users.messages.list({
+    auth: auth,
+    userId: 'me',
+    maxResults: 10,
+    q:"ingress"
+  }, function(err, response) {
+      console.log(response);
+      console.log("++++++++++++++++++++++++++");
+      parseMessage(response.messages,auth); //snippet not available
+    });
+  }
+
+  function getAnId(auth) {
+
+    var gmail = google.gmail({ auth: auth, version: 'v1' });
+
+    var emails = gmail.users.messages.list({
+        includeSpamTrash: false,
+        maxResults: 10,
+        q: "ingress",
+        userId: 'me'
+    }, function (err, results) {
+        console.log(results.data.messages[0].id);
+    });
+  }
+
+  function findAnEmailById(id, auth) {
+      
+    var gmail = google.gmail({ auth: auth, version: 'v1' });
+
+    var email = gmail.users.messages.get({
+        'userId': 'me', 
+        'id': id,
+        'format': 'full'
+    }, function(err, results) {
+        data = results.data.payload.parts[0].body.data;
+        let buff = new Buffer(data, 'base64');
+        let text = buff.toString('ascii');
+        console.log(text);
+    });
+  }
