@@ -13,7 +13,8 @@ const TOKEN_PATH = 'token.json';
 fs.readFile('credentials.json', (err, content) => {
   if (err) return console.log('Error loading client secret file:', err);
   // Authorize a client with credentials, then call the Gmail API.
-  authorize(JSON.parse(content), getAnId);
+  authorize(JSON.parse(content), main);
+
 });
 
 /**
@@ -66,71 +67,57 @@ function getNewToken(oAuth2Client, callback) {
   });
 }
 
-/**
+
+function doShit(labels) {
+  console.log(labels);
+}
+
+/*
  * Lists the labels in the user's account.
  *
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
-/*
-function listLabels(auth) {
-  const gmail = google.gmail({version: 'v1', auth});
-  gmail.users.labels.list({
-    userId: 'me',
-  }, (err, res) => {
-    if (err) return console.log('The API returned an error: ' + err);
-    const labels = res.data.labels;
-    if (labels.length) {
-      console.log('Labels:');
-      labels.forEach((label) => {
-        console.log(`- ${label.name}`);
-      });
-    } else {
-      console.log('No labels found.');
-    }
+
+function main(auth) {
+
+  var gmail = google.gmail({ auth: auth, version: 'v1' });
+
+  getEmailIdsByQuery('paulinelund', 500, auth, gmail, function(emailIds) {
+    findAnEmailById(emailIds[0].id, auth, gmail, function (email) {
+      console.log(emailIds[0].id);
+      console.log(email);
+    });
   });
+  /*
+  findAnEmailById('16ca9841fea6cd3f', auth, gmail, function(email) {
+    console.log(email);
+  });
+  */
+  
 }
 
-*/
-function findMessages(auth) {
-    var gmail = google.gmail('v1');
-    gmail.users.messages.list({
+function getEmailIdsByQuery(query, maxOcc, auth, gmail, fn) {
+  gmail.users.messages.list({
     auth: auth,
     userId: 'me',
-    maxResults: 10,
-    q:"ingress"
+    maxResults: maxOcc,
+    q:query
   }, function(err, response) {
-      console.log(response);
-      console.log("++++++++++++++++++++++++++");
-      parseMessage(response.messages,auth); //snippet not available
+      //console.log(response);
+      console.log(" ");
+      fn(response.data.messages);
     });
-  }
 
-  function getAnId(auth) {
+}
 
-    var gmail = google.gmail({ auth: auth, version: 'v1' });
+  function findAnEmailById(id, auth, gmail, callback) {
 
-    var emails = gmail.users.messages.list({
-        includeSpamTrash: false,
-        maxResults: 10,
-        q: "ingress",
-        userId: 'me'
-    }, function (err, results) {
-        console.log(results.data.messages[0].id);
-    });
-  }
-
-  function findAnEmailById(id, auth) {
-      
-    var gmail = google.gmail({ auth: auth, version: 'v1' });
-
-    var email = gmail.users.messages.get({
+    gmail.users.messages.get({
         'userId': 'me', 
         'id': id,
-        'format': 'full'
-    }, function(err, results) {
-        data = results.data.payload.parts[0].body.data;
-        let buff = new Buffer(data, 'base64');
-        let text = buff.toString('ascii');
-        console.log(text);
+    }, function (err, response) {
+      //console.log(response);
+      callback(response);
     });
+    
   }
